@@ -1,6 +1,4 @@
-﻿using SHDocVw;
-using System.Diagnostics;
-using System.Text.RegularExpressions;
+﻿using System.Diagnostics;
 
 namespace FastTransfer
 {
