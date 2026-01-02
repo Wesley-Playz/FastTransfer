@@ -449,20 +449,20 @@ jobs:
         body: |
           ## FastTransfer - Latest Build
           
-          **Built:** ${{ github.event.head_commit.timestamp }}
-          **Commit:** ${{ steps.get_info.outputs.COMMIT_HASH }}
-          **Changes:** ${{ github.event.head_commit.message }}
+          **📅 Built:** ${{ github.event.head_commit.timestamp }}
+          **💾 Commit:** ${{ steps.get_info.outputs.COMMIT_HASH }}
+          **✏️ Changes:** ${{ github.event.head_commit.message }}
           
           This is the latest build of FastTransfer, automatically updated with every change pushed to the main branch via the GitHub website.
           
           ---
           
-          ### Installation
+          ### 📥 Installation
           1. Download `FastTransferSetup.exe` below
           2. Run the installer as Administrator
           3. .NET 8 Desktop Runtime is required (installer will notify if missing)
           
-          ### Features
+          ### ✨ Features
           - Fast file and folder transfers
           - Right-click context menu integration
           - Transfer progress with speed monitoring (MB/s and Mb/s)
@@ -470,5 +470,5 @@ jobs:
           - Multiple simultaneous transfers
           - Intelligent folder merging
           
-          ### Recent Changes
+          ### 📝 Recent Changes
           See the [commit history](../../commits/main) for all recent changes.
