@@ -13,25 +13,7 @@ namespace FastTransfer
             [return: MarshalAs(UnmanagedType.IDispatch)]
             object Item([In] object index);
             
-            [return: MarshalAs(UnmanagedType.I4)]
-            int Count { get; }
-        }
-
-        [ComImport]
-        [Guid("85CB6900-4D95-11CF-960C-0080C7F4EE85")]
-        [InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
-        private interface IShellFolderViewDual
-        {
-            object Application { [return: MarshalAs(UnmanagedType.IDispatch)] get; }
-            object Parent { [return: MarshalAs(UnmanagedType.IDispatch)] get; }
-            object Folder { [return: MarshalAs(UnmanagedType.IDispatch)] get; }
-            object SelectedItems();
-            object FocusedItem { [return: MarshalAs(UnmanagedType.IDispatch)] get; }
-            void SelectItem(ref object pvfi, int dwFlags);
-            object PopupItemMenu(object pfi, object vx, object vy);
-            [return: MarshalAs(UnmanagedType.Struct)]
-            object Script { get; }
-            int ViewOptions { get; }
+            int Count { [return: MarshalAs(UnmanagedType.I4)] get; }
         }
 
         [ComImport]
@@ -47,10 +29,19 @@ namespace FastTransfer
             void Refresh();
             void Refresh2([In] ref object level);
             void Stop();
-            object Application { [return: MarshalAs(UnmanagedType.IDispatch)] get; }
-            object Parent { [return: MarshalAs(UnmanagedType.IDispatch)] get; }
-            object Container { [return: MarshalAs(UnmanagedType.IDispatch)] get; }
-            object Document { [return: MarshalAs(UnmanagedType.IDispatch)] get; }
+            
+            [return: MarshalAs(UnmanagedType.IDispatch)]
+            object Application { get; }
+            
+            [return: MarshalAs(UnmanagedType.IDispatch)]
+            object Parent { get; }
+            
+            [return: MarshalAs(UnmanagedType.IDispatch)]
+            object Container { get; }
+            
+            [return: MarshalAs(UnmanagedType.IDispatch)]
+            object Document { get; }
+            
             bool TopLevelContainer { get; }
             string Type { get; }
             int Left { get; set; }
@@ -75,11 +66,6 @@ namespace FastTransfer
             bool MenuBar { get; set; }
             bool FullScreen { get; set; }
         }
-
-        [ComImport]
-        [Guid("9BA05972-F6A8-11CF-A442-00A0C90A8F39")]
-        [ClassInterface(ClassInterfaceType.None)]
-        private class ShellWindowsClass { }
 
         public static List<string> GetOpenExplorerPaths()
         {
