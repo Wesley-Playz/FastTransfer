@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package 
+    Name="Fast Transfer" 
+    Version="1.0.0.0" 
+    Manufacturer="FastTransfer"
+    UpgradeCode="A1B2C3D4-E5F6-7890-ABCD-EF1234567890"
+    Language="1033"
+    Compressed="yes"
+    InstallerVersion="200">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Fast Transfer is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Feature Id="ProductFeature" Title="Fast Transfer" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="RegistryEntriesFile" />
+      <ComponentRef Id="RegistryEntriesFolder" />
+    </Feature>
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="FastTransfer">
+        <Component Id="ProductComponent" Bitness="always64">
+          <File Id="FastTransferExe" Source="$(var.FastTransfer.TargetPath)" KeyPath="yes" />
+          <File Source="$(var.FastTransfer.TargetDir)FastTransfer.dll" />
+          <File Source="$(var.FastTransfer.TargetDir)FastTransfer.runtimeconfig.json" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <!-- Additional files will be added here automatically -->
+    </ComponentGroup>
+
+    <!-- Registry entries for right-click context menu on files -->
+    <Component Id="RegistryEntriesFile" Directory="INSTALLFOLDER" Bitness="always64">
+      <RegistryKey Root="HKCR" Key="*\shell\FastTransfer">
+        <RegistryValue Type="string" Value="Fast Transfer" />
+        <RegistryValue Type="string" Name="Icon" Value="[INSTALLFOLDER]FastTransfer.exe" />
+      </RegistryKey>
+      <RegistryKey Root="HKCR" Key="*\shell\FastTransfer\command">
+        <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]FastTransfer.exe&quot; &quot;%1&quot;" />
+      </RegistryKey>
+    </Component>
+
+    <!-- Registry entries for right-click context menu on folders -->
+    <Component Id="RegistryEntriesFolder" Directory="INSTALLFOLDER" Bitness="always64">
+      <RegistryKey Root="HKCR" Key="Directory\shell\FastTransfer">
+        <RegistryValue Type="string" Value="Fast Transfer" />
+        <RegistryValue Type="string" Name="Icon" Value="[INSTALLFOLDER]FastTransfer.exe" />
+      </RegistryKey>
+      <RegistryKey Root="HKCR" Key="Directory\shell\FastTransfer\command">
+        <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]FastTransfer.exe&quot; &quot;%1&quot;" />
+      </RegistryKey>
+      
+      <!-- Background context menu (right-click in empty space) -->
+      <RegistryKey Root="HKCR" Key="Directory\Background\shell\FastTransfer">
+        <RegistryValue Type="string" Value="Fast Transfer" />
+        <RegistryValue Type="string" Name="Icon" Value="[INSTALLFOLDER]FastTransfer.exe" />
+      </RegistryKey>
+      <RegistryKey Root="HKCR" Key="Directory\Background\shell\FastTransfer\command">
+        <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]FastTransfer.exe&quot; &quot;%V&quot;" />
+      </RegistryKey>
+    </Component>
+  </Package>
+</Wix>

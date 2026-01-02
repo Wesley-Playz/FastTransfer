@@ -1,0 +1,11 @@
+<Project Sdk="WixToolset.Sdk/4.0.5">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputName>FastTransferInstaller</OutputName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FastTransfer\FastTransfer.csproj" />
+  </ItemGroup>
+</Project>
