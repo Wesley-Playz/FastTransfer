@@ -1,0 +1,35 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master, develop, feature/** ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore FastTransfer/FastTransfer.csproj
+      
+    - name: Build
+      run: dotnet build FastTransfer/FastTransfer.csproj --configuration Release --no-restore
+      
+    - name: Test build output
+      run: |
+        if (Test-Path "FastTransfer/bin/Release/net8.0-windows/FastTransfer.exe") {
+          Write-Host "✓ Build successful - FastTransfer.exe created"
+        } else {
+          Write-Error "✗ Build failed - FastTransfer.exe not found"
+          exit 1
+        }
