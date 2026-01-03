@@ -1,4 +1,4 @@
-﻿# FastTransfer
+# FastTransfer
 
 > A high-performance Windows file transfer utility with context menu integration and real-time speed monitoring
 
@@ -8,10 +8,12 @@ FastTransfer is a lightweight Windows application that provides fast, reliable f
 
 ### High-Performance Transfers
 - **Fast Copy/Move Operations** - Optimized transfer speeds using buffered streams (81KB buffer) and multi-threaded Robocopy
-- **Real-Time Speed Monitoring** - Live transfer speed display in both **bytes/s (MB/s)** and **bits/s (Mb/s)**
-- **Progress Tracking** - Visual progress bar with percentage, transferred size, and total size
+- **Real-Time Speed Monitoring** - Live transfer speed display in both **bytes/s (MB/s)** and **bits/s (Mb/s)** for both files and folders
+- **Progress Tracking** - Visual progress bar with percentage, transferred size, and total size for all transfer types
 - **Transfer Timing** - Automatic timing of operations with elapsed time display
 - **Multi-Threading** - Robocopy uses 8 concurrent threads for folder operations
+- **File Count Tracking** - Shows files transferred vs total files during folder operations
+- **Parallel Size Calculation** - Folder size calculated in background while transfer is in progress for instant start
 
 ### Smart Integration
 - **Windows Explorer Context Menu** - Right-click on any file or folder to transfer
@@ -135,11 +137,13 @@ If you prefer to install manually without an installer:
 Each transfer opens its own window showing:
 - **Source and Destination** paths (truncated for readability)
 - **Operation Type** (Copy or Move)
-- **Progress Bar** with visual feedback
+- **Progress Bar** with visual feedback and percentage
+  - Starts with marquee animation, then switches to percentage once total size is known
 - **Status Line** showing:
-  - Current file/operation
-  - Progress: `45.2 MB / 100 MB (45%)`
+  - Current operation status
+  - Progress: `45.2 MB / 100 MB (45%)` or `45.2 MB transferred` (if size still calculating)
   - Speed: `5.5 MB/s (44.0 Mb/s)` - Updated every 0.5 seconds
+  - For folders: File count `25 / 100 files` (or `25 files transferred` if total unknown)
 - **Elapsed Time** upon completion
 - **Cancel/Close** button
 
@@ -219,11 +223,14 @@ FastTransfer is optimized for speed:
 - **Speed Calculations:** Updated every 500ms for smooth, accurate display
 - **Memory Efficient:** Streaming architecture prevents memory overflow on large files
 - **Low Retry Overhead:** `/R:0 /W:0` flags on Robocopy for faster error handling
+- **Parallel Size Calculation:** Folder size enumerated in background during transfer for instant start
+- **Progressive Updates:** File count and size totals update every 100 files during enumeration
 
 ### Speed Display
 - **Bytes:** Shows in B/s, KB/s, MB/s, or GB/s (auto-scaling)
 - **Bits:** Shows in b/s, Kb/s, Mb/s, or Gb/s (useful for network context)
 - Both displayed simultaneously: `5.5 MB/s (44.0 Mb/s)`
+- **Available for both files and folders** with real-time updates
 
 ## Technical Details
 
@@ -241,7 +248,7 @@ FastTransfer is optimized for speed:
 - 64-bit Windows only
 - Context menu integration requires administrative installation
 - Network transfers depend on network speed (Robocopy respects SMB protocol)
-- Folder operations show marquee progress (Robocopy doesn't provide detailed progress)
+- Progress percentage for folders appears once size calculation completes (shown instantly for small folders)
 
 ## Roadmap
 
@@ -314,9 +321,18 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 5. Select "D:\Backup" from dropdown
 6. Click "Start"
 
-7. Watch the progress:
-   Copying... 145.2 MB / 500 MB (29%)
+7. Transfer starts immediately! Watch the progress:
+   Initially:
+   Copying folder...
+   45.2 MB transferred
    12.3 MB/s (98.4 Mb/s)
+   25 files transferred
+   
+   Once size is known:
+   Copying folder...
+   145.2 MB / 500 MB (29%)
+   12.3 MB/s (98.4 Mb/s)
+   25 / 100 files
 
 8. Window auto-closes when done!
 ```
