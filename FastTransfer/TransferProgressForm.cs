@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace FastTransfer
 {
@@ -16,6 +17,10 @@ namespace FastTransfer
         private DateTime lastSpeedUpdate;
         private string currentSpeed = "";
         private string currentSpeedBits = "";
+        private long totalFolderSize;
+        private long totalBytesTransferred;
+        private int totalFiles;
+        private int filesTransferred;
 
         public TransferProgressForm(string source, string destination, bool isFile, bool isMove)
         {
@@ -61,7 +66,49 @@ namespace FastTransfer
             }
             else
             {
+                // Start transfer immediately and calculate size in parallel
                 StartFolderCopy(sourcePath, destFolder, cancellationTokenSource.Token);
+            }
+        }
+
+        private void CalculateFolderSize(string folderPath, CancellationToken ct)
+        {
+            try
+            {
+                var dirInfo = new DirectoryInfo(folderPath);
+                var files = dirInfo.EnumerateFiles("*", SearchOption.AllDirectories);
+
+                long calculatedSize = 0;
+                int calculatedFiles = 0;
+
+                foreach (var file in files)
+                {
+                    if (ct.IsCancellationRequested)
+                        break;
+
+                    calculatedSize += file.Length;
+                    calculatedFiles++;
+
+                    // Update totals periodically (every 100 files)
+                    if (calculatedFiles % 100 == 0)
+                    {
+                        totalFolderSize = calculatedSize;
+                        totalFiles = calculatedFiles;
+                    }
+                }
+
+                // Final update
+                if (!ct.IsCancellationRequested)
+                {
+                    totalFolderSize = calculatedSize;
+                    totalFiles = calculatedFiles;
+                }
+            }
+            catch (Exception ex)
+            {
+                // If we can't calculate size, we'll just show progress without percentage
+                totalFolderSize = 0;
+                totalFiles = 0;
             }
         }
 
@@ -283,13 +330,18 @@ namespace FastTransfer
                 }
 
                 lblStatus.Text = $"{(isMoveOperation ? "Moving" : "Copying")} folder...";
-                progressBar.Style = ProgressBarStyle.Marquee;
+                progressBar.Style = ProgressBarStyle.Continuous;
+                progressBar.Value = 0;
+
+                // Start calculating folder size in parallel
+                Task.Run(() => CalculateFolderSize(sourceFolder, ct), ct);
 
                 await Task.Run(() =>
                 {
+                    // Add /BYTES /NP to get parseable output
                     string robocopyArgs = isMoveOperation
-                        ? $"\"{sourceFolder}\" \"{finalDest}\" /E /MOVE /MT:8 /R:0 /W:0"
-                        : $"\"{sourceFolder}\" \"{finalDest}\" /E /MT:8 /R:0 /W:0";
+                        ? $"\"{sourceFolder}\" \"{finalDest}\" /E /MOVE /MT:8 /R:0 /W:0 /BYTES /NP"
+                        : $"\"{sourceFolder}\" \"{finalDest}\" /E /MT:8 /R:0 /W:0 /BYTES /NP";
 
                     robocopyProcess = new Process
                     {
@@ -310,7 +362,7 @@ namespace FastTransfer
                         {
                             try
                             {
-                                Invoke(() => lblStatus.Text = e.Data.Length > 60 ? e.Data.Substring(0, 60) + "..." : e.Data);
+                                ParseRobocopyOutput(e.Data);
                             }
                             catch { }
                         }
@@ -361,6 +413,128 @@ namespace FastTransfer
                 lblStatus.Text = $"Error: {ex.Message}";
                 btnCancel.Text = "Close";
             }
+        }
+
+        private void ParseRobocopyOutput(string line)
+        {
+            try
+            {
+                // Robocopy with /BYTES shows progress like: "100%    New File   12345   filename.ext"
+                // or shows current file being copied
+
+                // Try to match percentage pattern
+                var percentMatch = Regex.Match(line, @"(\d+)%");
+                if (percentMatch.Success)
+                {
+                    int filePercent = int.Parse(percentMatch.Groups[1].Value);
+
+                    // Try to extract file size from the line
+                    var sizeMatch = Regex.Match(line, @"\s+(\d+)\s+");
+                    if (sizeMatch.Success && long.TryParse(sizeMatch.Groups[1].Value, out long fileSize))
+                    {
+                        // Estimate bytes transferred for this file
+                        long fileBytesTransferred = (fileSize * filePercent) / 100;
+
+                        // Update total if we haven't counted this file's previous progress
+                        if (filePercent == 100)
+                        {
+                            filesTransferred++;
+                            totalBytesTransferred += fileSize;
+                        }
+                    }
+                }
+
+                // Match summary line like "Bytes : 123456 100% 789012"
+                var summaryMatch = Regex.Match(line, @"Bytes\s*:\s*(\d+)");
+                if (summaryMatch.Success && long.TryParse(summaryMatch.Groups[1].Value, out long totalBytes))
+                {
+                    totalBytesTransferred = totalBytes;
+                }
+
+                // Update UI with current progress
+                UpdateFolderProgress();
+            }
+            catch { }
+        }
+
+        private void UpdateFolderProgress()
+        {
+            try
+            {
+                Invoke(() =>
+                {
+                    int progress = 0;
+
+                    if (totalFolderSize > 0 && totalBytesTransferred > 0)
+                    {
+                        progress = (int)((totalBytesTransferred * 100) / totalFolderSize);
+                        progress = Math.Min(progress, 100);
+                        progressBar.Value = progress;
+                    }
+                    else if (totalBytesTransferred > 0)
+                    {
+                        // Show marquee if we don't know total size yet
+                        if (progressBar.Style != ProgressBarStyle.Marquee)
+                        {
+                            progressBar.Style = ProgressBarStyle.Marquee;
+                        }
+                    }
+
+                    // Update speed calculation
+                    var now = DateTime.Now;
+                    var timeSinceLastUpdate = (now - lastSpeedUpdate).TotalSeconds;
+
+                    if (timeSinceLastUpdate >= 0.5)
+                    {
+                        long bytesSinceLastUpdate = totalBytesTransferred - lastBytesTransferred;
+                        double bytesPerSecond = bytesSinceLastUpdate / timeSinceLastUpdate;
+                        double bitsPerSecond = bytesPerSecond * 8;
+
+                        lastBytesTransferred = totalBytesTransferred;
+                        lastSpeedUpdate = now;
+                        currentSpeed = FormatSpeed(bytesPerSecond, false);
+                        currentSpeedBits = FormatSpeed(bitsPerSecond, true);
+                    }
+
+                    // Build status text
+                    string statusText = isMoveOperation ? "Moving folder..." : "Copying folder...";
+
+                    if (totalFolderSize > 0 && totalBytesTransferred > 0)
+                    {
+                        statusText = $"{statusText}\n{FormatBytes(totalBytesTransferred)} / {FormatBytes(totalFolderSize)} ({progress}%)";
+                    }
+                    else if (totalBytesTransferred > 0)
+                    {
+                        statusText = $"{statusText}\n{FormatBytes(totalBytesTransferred)} transferred";
+                        if (totalFolderSize > 0)
+                        {
+                            // We know the size now, switch to continuous progress bar
+                            if (progressBar.Style != ProgressBarStyle.Continuous)
+                            {
+                                progressBar.Style = ProgressBarStyle.Continuous;
+                                progressBar.Value = 0;
+                            }
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(currentSpeed))
+                    {
+                        statusText += $"\n{currentSpeed} ({currentSpeedBits})";
+                    }
+
+                    if (totalFiles > 0 && filesTransferred > 0)
+                    {
+                        statusText += $"\n{filesTransferred} / {totalFiles} files";
+                    }
+                    else if (filesTransferred > 0)
+                    {
+                        statusText += $"\n{filesTransferred} files transferred";
+                    }
+
+                    lblStatus.Text = statusText;
+                });
+            }
+            catch { }
         }
 
         private string FormatBytes(long bytes)
